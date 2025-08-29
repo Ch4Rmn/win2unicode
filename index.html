@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Win Innwa → Unicode (Client-Side)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          "Myanmar3", "Pyidaungsu", sans-serif;
+        max-width: 720px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+      /* body{
+            font-family: 'Myanmar3', 'Paudauk';
+        } */
+      textarea {
+        width: 100%;
+        min-height: 120px;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        background: #f6f6f7;
+        padding: 12px;
+        border-radius: 8px;
+      }
+      button {
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        cursor: pointer;
+      }
+      #status {
+        font-size: 12px;
+        color: #666;
+        margin-top: 8px;
+      }
+      .hint {
+        font-size: 12px;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Win Innwa → Unicode</h1>
+    <p class="hint">
+      Example Win Innwa input: <code>taemf&amp;xmvrf</code> →
+      <code>အနော်ရထာလမ်</code>
+    </p>
+    <textarea id="input">taemf&amp;xmvrf</textarea>
+    <br /><br />
+    <button id="convertBtn">Convert to Unicode</button>
+    <div id="status"></div>
+    <h3>Result:</h3>
+    <pre id="output"></pre>
+
+    <!-- Pyodide brings Python to the browser -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <script>
+      let pyReady;
+      async function initPy() {
+        if (!pyReady) {
+          pyReady = (async () => {
+            const pyodide = await loadPyodide();
+            await pyodide.loadPackage("micropip");
+            await pyodide.runPythonAsync(`
+import micropip
+await micropip.install('python-myanmar')
+          `);
+            return pyodide;
+          })();
+        }
+        return pyReady;
+      }
+
+      document
+        .getElementById("convertBtn")
+        .addEventListener("click", async () => {
+          const inputText = document.getElementById("input").value || "";
+          const out = document.getElementById("output");
+          const status = document.getElementById("status");
+          status.textContent = "Loading converter…";
+          try {
+            const pyodide = await initPy();
+            pyodide.globals.set("input_text", inputText);
+            await pyodide.runPythonAsync(`
+from myanmar.converter import convert
+result = convert(input_text, 'wininnwa', 'unicode')
+        `);
+            const result = pyodide.globals.get("result");
+            out.textContent = result;
+            status.textContent = "";
+          } catch (e) {
+            status.textContent = "Conversion failed: " + e;
+          }
+        });
+    </script>
+
+  </body>
+</html>
